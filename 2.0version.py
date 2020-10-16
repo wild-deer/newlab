@@ -1,3 +1,4 @@
+import alternative
 import sys
 import cv2
 import time
@@ -281,5 +282,4 @@ if __name__ == '__main__':
     tl_page = TL_Page()
     tl_page.show()
 
-    sys.exit(app.exec_())
-#提交测试
+    sys.exit(app.exec_())#提交测试
