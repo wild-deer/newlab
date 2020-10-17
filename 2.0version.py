@@ -21,6 +21,7 @@ class CameraThread(QThread):  # 摄像头线程类
     def __init__(self, mw):
         self.mw = mw  # UI界面的对象
         self.working = True
+        self.car_count = 0
         QThread.__init__(self)
 
     def __del__(self):
@@ -68,7 +69,8 @@ class ToyDetectThread(QThread):
 
 
     def run(self):
-        self.car_count = 0    #初始化车辆数
+        
+        #初始化车辆数
         self.cur_time = time.time()
         self.lt = LightTime(self)
         while self.working:
@@ -88,7 +90,7 @@ class ToyDetectThread(QThread):
 
                             # outObject是 Algorithm.toyDetect.Struct_TD_ObjInfor 类型变量
 
-                            print(type(outObject))
+
                             print(outObject.className == "car")
                             if str(outObject.className, "utf-8").replace('\r', '') == "car":
                                 #对车的数量进行计数
