@@ -1,3 +1,4 @@
+import random
 import sys
 import cv2
 import time
@@ -5,13 +6,16 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QThread  # 引入线程
 from PyQt5.QtGui import QImage, QPixmap, QColor
 
+import led_control
 from Algorithm.toyDetect import NLToyDetect  # 引入算法sdk类
 from PyQt5.QtWidgets import QMainWindow, QApplication
-from TL_UI import Ui_MainWindow
-import tct_trans
+from UI.TL_UI import Ui_MainWindow
+import tcp_trans_2
 
 
 # 增加对非汽车的过滤
+from httprequest import req
+
 
 class CameraThread(QThread):  # 摄像头线程类
     # 摄像头采集图片
@@ -33,7 +37,7 @@ class CameraThread(QThread):  # 摄像头线程类
                 self.mw.CapIsbasy = True
                 # 调用UI界面的摄像头对象，获取图片
                 ret, image = self.mw.cap.read()  # 获取新的一帧图片
-                time.sleep(1/30)
+                time.sleep(1 / 30)
                 if not ret:  # 如果ret不为0意味着获取图片失败
                     print("Capture Image Failed")
                     self.mw.CapIsbasy = False
@@ -54,12 +58,14 @@ class CameraThread(QThread):  # 摄像头线程类
             self.working = False
             print('摄像头采集线程退出')
 
-class LedThread(QThread):#红绿灯线程类
+
+class LedThread(QThread):  # 红绿灯线程类
     updatedcar = QtCore.pyqtSignal(int)  # 定义一个信号
 
     def __init__(self, mw):
         self.mw = mw  # 传入UI界面对象
         self.working = True
+
         QThread.__init__(self)
 
     def __del__(self):
@@ -67,8 +73,33 @@ class LedThread(QThread):#红绿灯线程类
 
     def run(self):
         while self.working:
-            pass
-            # print(str(self.mw.car1))
+
+            self.state = led_control.led_control(self.mw.car1,self.mw.car2,self.mw.car3,self.mw.car4,self.mw.state)
+            if self.mw.state == 1:
+                print("状态1")
+                # 将红绿灯状态设为1
+                time.sleep(10) # 至少持续10秒
+            if self.mw.state ==2:
+                # 将红路灯状态设为2
+                print("状态2")
+                time.sleep(10) # 至少持续10秒
+            if self.mw.state ==3:
+                # 将红绿灯状态设为3
+                print("状态3")
+                time.sleep(5)
+            if self.mw.state ==4:
+                # 将红路灯状态4
+                time.sleep(5)#至少持续5秒
+
+            # self.mw.green_time_1.setStyleSheet("background-color: #3CB371")
+            # self.mw.red_time1.setStyleSheet("background-color: white")
+            # self.mw.yello_time_1.setStyleSheet("background-color: white")
+
+            # else :
+            #     self.mw.green_time_1.setStyleSheet("background-color: white")
+            #     self.mw.red_time1.setStyleSheet("background-color: red")
+            #     self.mw.yello_time_1.setStyleSheet("background-color: white")
+
     def stop(self):
         if self.working:
             self.working = False
@@ -81,17 +112,31 @@ class tcp_trans(QThread):  # 红绿灯线程类
     def __init__(self, mw):
         self.mw = mw  # 传入UI界面对象
         self.working = True
+        self.req = req()
         QThread.__init__(self)
-
 
     def __del__(self):
         self.wait()
 
     def run(self):
         while self.working:
-            tct_trans.send_carNumber(self.mw.tcp_client,self.mw.car1)
-            time.sleep(1)
-            print(str(self.mw.car1))
+            tcp_trans_2.send_carNumber(self.mw.tcp_client, self.mw.road1, self.mw.car1)
+            time.sleep(1 / 4)
+            tcp_trans_2.send_carNumber(self.mw.tcp_client, self.mw.road2, self.mw.car2)
+            time.sleep(1 / 4)
+            tcp_trans_2.send_carNumber(self.mw.tcp_client, self.mw.road3, self.mw.car3)
+            time.sleep(1 / 4)
+            tcp_trans_2.send_carNumber(self.mw.tcp_client, self.mw.road4, self.mw.car4)
+            time.sleep(1 / 4)
+            self.req.setinfo("122944","led_1",self.mw.state)
+            time.sleep(1 / 4)
+            print("路口1的车辆 ="+ str(self.mw.car1))
+            print("路口2的车辆 ="+ str(self.mw.car2))
+            print("路口3的车辆 ="+str(self.mw.car3))
+            print("路口4的车辆 ="+str(self.mw.car4))
+            print("state =     "  + str(self.mw.state))
+            print("----------------     --------------------")
+            time.sleep(3)
 
     def stop(self):
         if self.working:
@@ -99,10 +144,44 @@ class tcp_trans(QThread):  # 红绿灯线程类
             print('ToyDetectThread线程退出了')
 
 
+class random_car(QThread):
+    updatedcar = QtCore.pyqtSignal(int)  # 定义一个信号
+
+    def __init__(self, mw):
+        self.mw = mw  # 传入UI界面对象
+        self.working = True
+        QThread.__init__(self)
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        while self.working:
+            # 2、3、4号路口车辆模拟
+
+            self.mw.car2 = random.randint(0, 3)
+            self.mw.car3 = random.randint(0, 3)
+            self.mw.car4 = random.randint(0, 3)
+
+            self.mw.car_number_1.setText(str(self.mw.car1))
+            self.mw.car_number_2.setText(str(self.mw.car2))
+            self.mw.car_number_3.setText(str(self.mw.car3))
+            self.mw.car_number_4.setText(str(self.mw.car4))
+
+
+            time.sleep(1)
+
+    def stop(self):
+        if self.working:
+            self.working = False
+            print('randomd线程退出了')
+
+
 class ToyDetectThread(QThread):
     # 物品目标检测算法sdk调用线程
     updatedImage = QtCore.pyqtSignal(int)  # 定义一个信号
     updatedcar = QtCore.pyqtSignal(int)  # 定义一个信号
+
     def __init__(self, mw):
         self.mw = mw  # 传入UI界面对象
         self.working = True
@@ -132,9 +211,7 @@ class ToyDetectThread(QThread):
                             # print(type(outObject))
                             # print(outObject.className == "car")
 
-
                             if str(outObject.className, "utf-8").replace('\r', '') == "car":
-                                self.mw.car_number_1.setText(str(ret))
                                 self.mw.car1 = ret
                                 font = cv2.FONT_HERSHEY_SIMPLEX  # 定义字体
                                 # 在图片上，标识类别名称
@@ -210,21 +287,43 @@ class ToyDetectThread(QThread):
             print('ToyDetectThread线程退出了')
 
 
-
-
-
 class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
     def __init__(self):  # 初始化界面函数
         super(TL_Page, self).__init__()  # 继承UI
         self.setupUi(self)
 
+        # self.green_time_1.setStyleSheet("background-color: green")
+        # self.red_time1.setStyleSheet("background-color: white")
+        # self.yello_time_1.setStyleSheet("background-color: white")
+        #
+        # self.green_time_2.setStyleSheet("background-color: white")
+        # self.red_time_2.setStyleSheet("background-color: red")
+        # self.yello_time_2.setStyleSheet("background-color: white")
+        #
+        # self.green_time_3.setStyleSheet("background-color: green")
+        # self.red_time_3.setStyleSheet("background-color: white")
+        # self.yello_time_3.setStyleSheet("background-color: white")
+        #
+        # self.green_time_4.setStyleSheet("background-color: white")
+        # self.red_time_4.setStyleSheet("background-color: red")
+        # self.yello_time_4.setStyleSheet("background-color: white")
+
         # 设置线程参数,在线程中会用到所以提前 定义
         self.AlgIsbasy = False
         self.CapIsbasy = False
         self.frameID = 0
-        self.car1 = 0  #路口一的车辆数保存在这里
-        self.car2 = 0
 
+        self.car1 = 0  # 路口一的车辆数保存在这里
+        self.car2 = 0
+        self.car3 = 0
+        self.car4 = 0
+
+        self.road1 = "car"
+        self.road2 = "car2"
+        self.road3 = "car3"
+        self.road4 = "car4"
+
+        self.state = 1  # 初始化红绿灯参数为1
         # 初始红绿灯参数
         # self.red_time.setText(str(QColor('red')))
         # self.red_time.setStyleSheet("background-color: red")
@@ -232,7 +331,9 @@ class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
         # self.green_time.setText("     10s")
 
         self.car_number_1.setText("0")
-
+        self.car_number_2.setText("0")
+        self.car_number_3.setText("0")
+        self.car_number_4.setText("0")
 
         # 设置摄像头视频采集参数
         self.cap = cv2.VideoCapture("2.avi")  # 0是笔记本自带摄像头，可参数：“视频路径”
@@ -241,10 +342,8 @@ class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
         self.limg = None  # 将摄像头线程采集的一帧图片保存在这里
         self.showImage = None  # 将经过处理的图片保存在这里
 
-
         # tcp传输类
-        self.tcp_client = tct_trans.init_tcp()
-
+        self.tcp_client = tcp_trans_2.init_tcp()
 
         # 调用算法类-------实例化算法sdk类，并初始化加载模型和配值
         self.configPath = configPath  # 模型防止路径信息
@@ -256,8 +355,19 @@ class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
 
         self.start_btn.clicked.connect(self.start_btn_func)  # 开始按钮，通过点击触发函数
         self.stop_btn.clicked.connect(self.stop_btn_func)  # 停止按钮，通过点击触发函数
-    def setCarnumber(self):
+
+    def set_Car1_number(self):
         self.car_number_1.setText(str(self.car1))
+
+    def set_Car2_number(self):
+        self.car_number_2.setText(str(self.car2))
+
+    def set_Car3_number(self):
+        self.car_number_3.setText(str(self.car3))
+
+    def set_Car4_number(self):
+        self.car_number_4.setText(str(self.car4))
+
     def showframe(self):
         # 显示视频流
         self.label_show_camera.setPixmap(self.showImage)
@@ -274,14 +384,18 @@ class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
         # 线程2算法处理
         self.toy_detect_th = ToyDetectThread(self)
         self.toy_detect_th.updatedImage.connect(self.showframe)  # 将线程信号绑定在显示函数上
-        self.toy_detect_th.updatedcar.connect(self.setCarnumber)  # 将线程信号绑定在显示函数上
+
         self.toy_detect_th.start()
-        #线程3红绿灯处理
+        # 线程3界面处理
         self.led_th = LedThread(self)
         self.led_th.start()
-        #tcp线程处理
+        # tcp线程处理
         self.tcp_trans_th = tcp_trans(self)
         self.tcp_trans_th.start()
+        # 其他路口车辆模拟类
+        self.randmo_car_th = random_car(self)
+        self.randmo_car_th.start()
+
     def stop_btn_func(self):
         self.stop_btn.setEnabled(False)
         self.start_btn.setEnabled(True)
@@ -290,8 +404,17 @@ class TL_Page(QMainWindow, Ui_MainWindow):  # 窗口页面
             self.camera_th.quit()
             self.toy_detect_th.stop()
             self.toy_detect_th.quit()
+            self.randmo_car_th.stop()
+            self.randmo_car_th.quit()
+            self.tcp_trans_th.stop()
+            self.tcp_trans_th.quit()
+            self.led_th.stop()
+            self.led_th.quit()
             del self.camera_th
             del self.toy_detect_th
+            del self.led_th
+            del self.tcp_trans_th
+            del self.tcp_trans_th
         except Exception as e:
             pass
 
