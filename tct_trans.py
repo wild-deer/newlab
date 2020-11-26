@@ -66,7 +66,7 @@ def tcp_ping(socket_obj):
 
 
 
-def send_carNumber(tcp_client,num):
+def send_carNumber(tcp_client,road,num):
     '''
 
     :param tcp_client: socket对象
@@ -78,7 +78,7 @@ def send_carNumber(tcp_client,num):
         "t": 3,
         "datatype": 1,
         "datas": {
-            "car": num,
+            road:num,
         },
         # "msgid": str(random.randint(100,100000))
     }
@@ -106,6 +106,6 @@ if __name__ == '__main__':
     tcp_client = init_tcp()
     while(1):
         i = i+1
-        time.sleep(3)
+        time.sleep(10)
         print(i)
-        send_carNumber(tcp_client, i)  # 发送一条体温数据
+        send_carNumber(tcp_client,"car2" ,i)  # 发送一条体温数据
